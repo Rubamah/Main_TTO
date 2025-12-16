@@ -65,7 +65,7 @@
   const nowMrn=document.getElementById("nowMrn");
   const rangesEl=document.getElementById("ranges");
 
-  // نطاقات الأزرار 1..1000
+‎  // نطاقات الأزرار 1..1000
   const ranges=[]; for(let s=1;s<=1000;s+=100){ ranges.push([s,s+99]); }
   ranges.forEach(([a,b],i)=>{
     const btn=document.createElement("button");
@@ -76,14 +76,14 @@
   });
   function clearActive(){[...rangesEl.children].forEach(b=>b.classList.remove("active"));}
 
-  // مخازن الحالة (يتم استبدالها بالكامل عند كل تحديث)
+‎  // مخازن الحالة (يتم استبدالها بالكامل عند كل تحديث)
   let served={}, printed={}, noshow={};
 
   db.ref(`${ROOT}/served`).on("value",s=>{ served = s.val()||{}; refreshGridClasses(); });
   db.ref(`${ROOT}/printed`).on("value",s=>{ printed = s.val()||{}; refreshGridClasses(); });
   db.ref(`${ROOT}/noshow`).on("value",s=>{ noshow = s.val()||{}; refreshGridClasses(); });
 
-  // إظهار نطاق
+‎  // إظهار نطاق
   let curStart=1, curEnd=100;
   function showRange(a,b,btn){
     clearActive(); btn.classList.add("active");
@@ -93,17 +93,17 @@
       const d=document.createElement("div");
       d.className="cell"; d.textContent=n;
 
-      // نداء (نقرة واحدة)
+‎      // نداء (نقرة واحدة)
       d.addEventListener('click', ()=> serve(n));
 
-      // تنظيف الحالة (دبل-كلك) → يرجع أبيض
+‎      // تنظيف الحالة (دبل-كلك) → يرجع أبيض
       d.addEventListener('dblclick', async (ev)=>{
         ev.preventDefault();
         await Promise.all([
           db.ref(`${ROOT}/served/${n}`).remove(),
           db.ref(`${ROOT}/noshow/${n}`).remove()
         ]);
-        // لا ننشر latest هنا حتى لا يرجع أسود
+‎        // لا ننشر latest هنا حتى لا يرجع أسود
         refreshGridClasses();
       });
 
@@ -122,13 +122,13 @@
     });
   }
 
-  // جلب MRN
+‎  // جلب MRN
   async function getMrn(n){
     const m = await db.ref(`${ROOT}/mrn/${n}`).get();
     return m.exists()? m.val(): null;
   }
 
-  // خدمة رقم
+‎  // خدمة رقم
   async function serve(n){
 if (noshow[n]) {
   alert("❌ لا يمكن نداء تذكرة تم تسجيلها كـ No Show");
@@ -139,15 +139,15 @@ if (noshow[n]) {
   await db.ref(`${ROOT}/served/${n}`).set(true);
 }
     const mrnVal = await getMrn(n);
-    // داخل serve(n) بعد حساب mrnVal
+‎    // داخل serve(n) بعد حساب mrnVal
 const effectiveWindow = sessionStorage.getItem("counterNum") || null;
 
-// ثبّت حالة الخدمة + خزّن طابع وقت الخدمة
+‎// ثبّت حالة الخدمة + خزّن طابع وقت الخدمة
 await Promise.all([
   db.ref(`${ROOT}/served/${n}`).set(true),
   db.ref(`${ROOT}/times/served/${n}`).set(firebase.database.ServerValue.TIMESTAMP),
 
-  // حدّث آخر نداء
+‎  // حدّث آخر نداء
   db.ref(`${ROOT}/latest`).set({
     number: n,
     window: effectiveWindow,
@@ -155,7 +155,7 @@ await Promise.all([
     mrn: mrnVal || null
   }),
 
-  // لوج النداءات
+‎  // لوج النداءات
   db.ref(`${ROOT}/calls/${n}`).set({
     number: n,
     window: effectiveWindow,
@@ -169,7 +169,7 @@ await Promise.all([
     nowNum.textContent = n;
     nowMrn.textContent = mrnVal ? `MRN: ${mrnVal}` : "";
     refreshGridClasses();
-    // لو وصلنا آخر النطاق انتقل تلقائيًا
+‎    // لو وصلنا آخر النطاق انتقل تلقائيًا
     if(n===curEnd && curEnd<1000){
       const nextStart=curEnd+1, nextEnd=Math.min(curEnd+100,1000);
       const nextBtn = [...rangesEl.children][Math.floor((nextStart-1)/100)];
@@ -177,14 +177,14 @@ await Promise.all([
     }
   }
 
-  // اختيار أصغر رقم متاح (يفضّل المطبوعة أولاً)
+‎  // اختيار أصغر رقم متاح (يفضّل المطبوعة أولاً)
 async function claimNextTicket(start, end) {
-  // نقرأ حالة no-show مرة واحدة قبل البدء
+‎  // نقرأ حالة no-show مرة واحدة قبل البدء
 
 
   for (let n = start; n <= end; n++) {
     if (noshow[n]) continue;
- // تخطي التذكرة اللي عليها no-show
+‎ // تخطي التذكرة اللي عليها no-show
 
     const ref = db.ref(`${ROOT}/served/${n}`);
     const result = await ref.transaction(current => {
@@ -204,13 +204,13 @@ async function claimNextTicket(start, end) {
 
 
 
-  // أزرار
+‎  // أزرار
   document.getElementById("btnNext").onclick = async ()=>{
   const n = await claimNextTicket(curStart, curEnd);
 if(n!=null) {
   await serve(n);
 } else {
-  // عرض رسالة فقط إذا لم يحصل على رقم
+‎  // عرض رسالة فقط إذا لم يحصل على رقم
   const msgEl = document.getElementById("confirmationMsg");
   msgEl.textContent = `⚠️ تم أخذ التذكرة من شباك آخر`;
   setTimeout(() => msgEl.textContent = "", 4000);
@@ -233,7 +233,7 @@ if(n!=null) {
   document.getElementById("btnReset").onclick = async () => {
     if (!confirm("سيتم مسح جميع البيانات (مطبوع/مخدّم/لم يحضر) وإعادة البدء. متابعة؟")) return;
 
-    // 1) امسح الحالة بالكامل
+‎    // 1) امسح الحالة بالكامل
     await Promise.all([
       db.ref(`${ROOT}/served`).remove(),
       db.ref(`${ROOT}/noshow`).remove(),
@@ -244,41 +244,41 @@ if(n!=null) {
       db.ref(`${ROOT}/next`).set(null)   // الكيوسك سيعيد حساب "التالي" (يبدأ من 1)
     ]);
 
-    // 2) نبضة للكيوسك ليتصفّر (input/preview)
+‎    // 2) نبضة للكيوسك ليتصفّر (input/preview)
     const flagRef = db.ref(`${ROOT}/resetFlag`);
     await flagRef.set(Date.now());
     setTimeout(()=>flagRef.set(null), 1500);
 
-    // 3) نظافة واجهة الأوبريتور محليًا
+‎    // 3) نظافة واجهة الأوبريتور محليًا
     nowNum.textContent="-"; 
     nowMrn.textContent="";
     refreshGridClasses();
 
-    // ارجعي لأول مدى 1–100
+‎    // ارجعي لأول مدى 1–100
     const firstBtn = document.querySelector(".ranges button");
     if (firstBtn) showRange(1, 100, firstBtn);
   };
 
-  // عكس آخر نداء على اللوحة
+‎  // عكس آخر نداء على اللوحة
   db.ref(`${ROOT}/latest`).on("value",s=>{
     const v=s.val(); if(!v) return;
     nowNum.textContent=v.number || "-";
     nowMrn.textContent = v.mrn ? `MRN: ${v.mrn}` : "";
   });
 
-  // بدء
+‎  // بدء
   showRange(1,100,rangesEl.firstElementChild);
 })();
 </script>
 <script>
 (function(){
-  // كلمة السر
+‎  // كلمة السر
   const pass = "kpcreg";
 
-  // تحقق من الجلسة (sessionStorage فقط)
+‎  // تحقق من الجلسة (sessionStorage فقط)
   let entered = sessionStorage.getItem("authOK");
 if (!entered) {
-    // إنشاء overlay بسيط
+‎    // إنشاء overlay بسيط
     const overlay = document.createElement("div");
     overlay.style.position = "fixed";
     overlay.style.top = 0;
@@ -296,21 +296,16 @@ if (!entered) {
     overlay.innerHTML = `
       <h2 style="margin-bottom:20px;font-size:28px;">Access Required</h2>
       <input id="pw" type="password" placeholder="Enter password" style="padding:12px 18px;font-size:18px;border-radius:8px;border:none;width:240px;text-align:center;margin-bottom:14px;" />
-      <input id="cn" type="number" placeholder="Counter number" style="padding:12px 18px;font-size:18px;border-radius:8px;border:none;width:240px;text-align:center;margin-bottom:14px;" />
+  
       <button id="go" style="padding:12px 20px;font-size:18px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;">Continue</button>
     `;
     document.body.appendChild(overlay);
 
     document.getElementById("go").onclick = ()=>{
   const pw = document.getElementById("pw").value.trim();
-  const cn = ""; // ما نطلبه ولا نحتاجه
-  if(pw !== pass){ alert("Incorrect password."); return; }
+  if (pw !== pass) { alert("Incorrect password."); return; }
   sessionStorage.setItem("authOK","true");
   overlay.remove();
-
-  const db = firebase.database();
-  const ROOT = "main_TTO";
-  db.ref(`${ROOT}/operatorWindow`).set(Number(cn));
 };
   }
 })();

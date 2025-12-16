@@ -307,14 +307,13 @@ if(n!=null) {
       const pw = document.getElementById("pw").value.trim();
       const cn = document.getElementById("cn").value.trim();
       if(pw !== pass){ alert("Incorrect password."); return; }
-      if(!cn){ alert("Please enter counter number."); return; }
       sessionStorage.setItem("authOK","true");
       sessionStorage.setItem("counterNum", cn);
       overlay.remove();
 
       // نحفظ رقم الشباك في Firebase ليقرأه announcer
       const db = firebase.database();
-      const ROOT = "cardiac_demo";
+      const ROOT = "main_TTO";
       db.ref(`${ROOT}/operatorWindow`).set(Number(cn));
     };
   }

@@ -302,17 +302,16 @@ if (!entered) {
     document.body.appendChild(overlay);
 
     document.getElementById("go").onclick = ()=>{
-      const pw = document.getElementById("pw").value.trim();
-      const cn = document.getElementById("cn").value.trim();
-      if(pw !== pass){ alert("Incorrect password."); return; }
-      sessionStorage.setItem("authOK","true");
-      overlay.remove();
+  const pw = document.getElementById("pw").value.trim();
+  const cn = ""; // ما نطلبه ولا نحتاجه
+  if(pw !== pass){ alert("Incorrect password."); return; }
+  sessionStorage.setItem("authOK","true");
+  overlay.remove();
 
-      // نحفظ رقم الشباك في Firebase ليقرأه announcer
-      const db = firebase.database();
-      const ROOT = "main_TTO";
-      db.ref(`${ROOT}/operatorWindow`).set(Number(cn));
-    };
+  const db = firebase.database();
+  const ROOT = "main_TTO";
+  db.ref(`${ROOT}/operatorWindow`).set(Number(cn));
+};
   }
 })();
 </script>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cardiac Operator</title>
+<style>
+  :root{--bg:#f5f7fb;--panel:#111;--text:#fff;--muted:#cbd5e1;--green:#16a34a;--amber:#f59e0b;--red:#e11d48;--ink:#0f172a;--cell:#fff;--cellBorder:#d1d5db}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink)}
+  h1{font-size:clamp(26px,4.5vw,34px);text-align:center;margin:16px 0 8px}
+  .ranges{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;max-width:980px;margin:0 auto 14px;padding:0 16px}
+  .ranges button{padding:12px 16px;border-radius:14px;border:0;background:#eaeef5;color:#0b57d0;font-weight:800;font-size:18px;cursor:pointer}
+  .ranges button.active{background:#111;color:#fff}
+  .panel{max-width:980px;margin:10px auto;padding:22px;border-radius:22px;background:var(--panel);color:var(--text)}
+  .now{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .now h2{margin:0;font-size:clamp(22px,4vw,28px);font-weight:900}
+  .big{font-size:clamp(64px,14vw,110px);font-weight:900;line-height:1}
+  .mrn{font-size:clamp(16px,3.3vw,20px);opacity:.85;min-height:1.2em}
+  .btns{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  .btn{border:0;border-radius:14px;padding:12px 22px;font-weight:900;font-size:18px;cursor:pointer}
+  .next{background:#16a34a;color:#fff}.noshow{background:var(--amber);color:#111}.reset{background:var(--red);color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:10px;max-width:980px;margin:14px auto 28px;padding:0 16px}
+  .cell{border:2px solid var(--cellBorder);border-radius:14px;padding:14px 0;text-align:center;font-weight:800;font-size:18px;background:var(--cell);cursor:pointer;user-select:none;transition:.15s}
+  .cell.on{background:#111;color:#fff;border-color:#000}        /* أسود = Served */
+  .cell.no{background:#9ca3af;color:#fff;border-color:#888}     /* رمادي = No-Show */
+  .cell.printed{background:#16a34a;color:#fff;border-color:#0f7a34} /* أخضر = Printed */
+  .tip{max-width:980px;margin:0 auto 22px;padding:0 16px;color:#475569;text-align:center}
+</style>
+
+<!-- Firebase compat -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h1>Cardiac Tickets</h1>
+  <div class="ranges" id="ranges"></div>
+
+  <div class="panel">
+    <div class="now">
+      <h2>Now Serving</h2>
+      <div class="big" id="nowNum">-</div>
+      <div class="mrn" id="nowMrn"></div>
+      <div class="btns">
+        <button class="btn next"   id="btnNext">Next</button>
+        <button class="btn noshow" id="btnNo">No Show</button>
+        <button class="btn reset"  id="btnReset">Restart</button>
+      </div>
+      <div id="confirmationMsg" style="margin-top:12px;font-weight:800;color:#16a34a;font-size:18px;"></div>
+    </div>
+  </div>
+
+  <div id="grid" class="grid"></div>
+  <p class="tip">أخضر = مطبوع، أسود = تم النداء، رمادي = لم يحضر. دبل-كلك على الأسود أو الرمادي يعيد المربع أبيض.</p>
+
+<script>
+(function(){
+  // ===== Firebase =====
+  const cfg={apiKey:"AIzaSyCWWnMsge75Q3_MDF9Aj9wo4C5KD6RVGfw",authDomain:"q-matic-b7d77.firebaseapp.com",databaseURL:"https://q-matic-b7d77-default-rtdb.firebaseio.com",projectId:"q-matic-b7d77",storageBucket:"q-matic-b7d77.appspot.com",messagingSenderId:"908187704899",appId:"1:908187704899:web:b8bcf33cda90bafe81bef6"};
+  firebase.initializeApp(cfg);
+  const db=firebase.database();
+  const ROOT="cardiac_demo";   // تأكّد أنه نفس الجذر في الكيوسك
+
+  const gridEl=document.getElementById("grid");
+  const nowNum=document.getElementById("nowNum");
+  const nowMrn=document.getElementById("nowMrn");
+  const rangesEl=document.getElementById("ranges");
+
+  // نطاقات الأزرار 1..1000
+  const ranges=[]; for(let s=1;s<=1000;s+=100){ ranges.push([s,s+99]); }
+  ranges.forEach(([a,b],i)=>{
+    const btn=document.createElement("button");
+    btn.textContent=`${a}–${b}`;
+    btn.onclick=()=>showRange(a,b,btn);
+    rangesEl.appendChild(btn);
+    if(i===0) btn.classList.add("active");
+  });
+  function clearActive(){[...rangesEl.children].forEach(b=>b.classList.remove("active"));}
+
+  // مخازن الحالة (يتم استبدالها بالكامل عند كل تحديث)
+  let served={}, printed={}, noshow={};
+
+  db.ref(`${ROOT}/served`).on("value",s=>{ served = s.val()||{}; refreshGridClasses(); });
+  db.ref(`${ROOT}/printed`).on("value",s=>{ printed = s.val()||{}; refreshGridClasses(); });
+  db.ref(`${ROOT}/noshow`).on("value",s=>{ noshow = s.val()||{}; refreshGridClasses(); });
+
+  // إظهار نطاق
+  let curStart=1, curEnd=100;
+  function showRange(a,b,btn){
+    clearActive(); btn.classList.add("active");
+    curStart=a; curEnd=b;
+    gridEl.innerHTML="";
+    for(let n=a;n<=b;n++){
+      const d=document.createElement("div");
+      d.className="cell"; d.textContent=n;
+
+      // نداء (نقرة واحدة)
+      d.addEventListener('click', ()=> serve(n));
+
+      // تنظيف الحالة (دبل-كلك) → يرجع أبيض
+      d.addEventListener('dblclick', async (ev)=>{
+        ev.preventDefault();
+        await Promise.all([
+          db.ref(`${ROOT}/served/${n}`).remove(),
+          db.ref(`${ROOT}/noshow/${n}`).remove()
+        ]);
+        // لا ننشر latest هنا حتى لا يرجع أسود
+        refreshGridClasses();
+      });
+
+      gridEl.appendChild(d);
+    }
+    refreshGridClasses();
+  }
+
+  function refreshGridClasses(){
+    [...gridEl.children].forEach(cell=>{
+      const n = parseInt(cell.textContent,10);
+      cell.classList.remove("on","no","printed");
+      if     (served[n])  cell.classList.add("on");
+      else if(noshow[n])  cell.classList.add("no");
+      else if(printed[n]) cell.classList.add("printed");
+    });
+  }
+
+  // جلب MRN
+  async function getMrn(n){
+    const m = await db.ref(`${ROOT}/mrn/${n}`).get();
+    return m.exists()? m.val(): null;
+  }
+
+  // خدمة رقم
+  async function serve(n){
+if (noshow[n]) {
+  alert("❌ لا يمكن نداء تذكرة تم تسجيلها كـ No Show");
+  return;
+}
+
+    if (!served[n]) {
+  await db.ref(`${ROOT}/served/${n}`).set(true);
+}
+    const mrnVal = await getMrn(n);
+    // داخل serve(n) بعد حساب mrnVal
+const effectiveWindow = sessionStorage.getItem("counterNum") || null;
+
+// ثبّت حالة الخدمة + خزّن طابع وقت الخدمة
+await Promise.all([
+  db.ref(`${ROOT}/served/${n}`).set(true),
+  db.ref(`${ROOT}/times/served/${n}`).set(firebase.database.ServerValue.TIMESTAMP),
+
+  // حدّث آخر نداء
+  db.ref(`${ROOT}/latest`).set({
+    number: n,
+    window: effectiveWindow,
+    ts: firebase.database.ServerValue.TIMESTAMP,
+    mrn: mrnVal || null
+  }),
+
+  // لوج النداءات
+  db.ref(`${ROOT}/calls/${n}`).set({
+    number: n,
+    window: effectiveWindow,
+    windowNum: effectiveWindow,
+    mrn: mrnVal || null,
+    ts: firebase.database.ServerValue.TIMESTAMP
+  })
+]);
+
+
+    nowNum.textContent = n;
+    nowMrn.textContent = mrnVal ? `MRN: ${mrnVal}` : "";
+    refreshGridClasses();
+    // لو وصلنا آخر النطاق انتقل تلقائيًا
+    if(n===curEnd && curEnd<1000){
+      const nextStart=curEnd+1, nextEnd=Math.min(curEnd+100,1000);
+      const nextBtn = [...rangesEl.children][Math.floor((nextStart-1)/100)];
+      showRange(nextStart,nextEnd,nextBtn);
+    }
+  }
+
+  // اختيار أصغر رقم متاح (يفضّل المطبوعة أولاً)
+async function claimNextTicket(start, end) {
+  // نقرأ حالة no-show مرة واحدة قبل البدء
+
+
+  for (let n = start; n <= end; n++) {
+    if (noshow[n]) continue;
+ // تخطي التذكرة اللي عليها no-show
+
+    const ref = db.ref(`${ROOT}/served/${n}`);
+    const result = await ref.transaction(current => {
+      if (current === true) return; // already taken
+      return true; // claim it
+    });
+
+    if (result.committed) {
+      await db.ref(`${ROOT}/noshow/${n}`).remove(); // تنظيف احتياطي
+      return n; // this ticket is now yours
+    }
+  }
+
+  return null; // لا يوجد تذكرة متاحة
+}
+
+
+
+
+  // أزرار
+  document.getElementById("btnNext").onclick = async ()=>{
+  const n = await claimNextTicket(curStart, curEnd);
+if(n!=null) {
+  await serve(n);
+} else {
+  // عرض رسالة فقط إذا لم يحصل على رقم
+  const msgEl = document.getElementById("confirmationMsg");
+  msgEl.textContent = `⚠️ تم أخذ التذكرة من شباك آخر`;
+  setTimeout(() => msgEl.textContent = "", 4000);
+}
+
+};
+
+
+
+  document.getElementById("btnNo").onclick = async ()=>{
+    const n = parseInt(nowNum.textContent,10);
+    if(!n) return;
+    await db.ref(`${ROOT}/noshow/${n}`).set(true);
+    await db.ref(`${ROOT}/served/${n}`).remove();  // لا يكون أسود بعد الآن
+    nowMrn.textContent = "";                       // أخفِ MRN للـ no-show
+    refreshGridClasses();
+  };
+
+  /* ===== Restart: يمسح كل شيء ويبلغ الكيوسك ===== */
+  document.getElementById("btnReset").onclick = async () => {
+    if (!confirm("سيتم مسح جميع البيانات (مطبوع/مخدّم/لم يحضر) وإعادة البدء. متابعة؟")) return;
+
+    // 1) امسح الحالة بالكامل
+    await Promise.all([
+      db.ref(`${ROOT}/served`).remove(),
+      db.ref(`${ROOT}/noshow`).remove(),
+      db.ref(`${ROOT}/printed`).remove(),
+      db.ref(`${ROOT}/mrn`).remove(),
+      db.ref(`${ROOT}/latest`).remove(),
+      db.ref(`${ROOT}/latestPrinted`).remove(),
+      db.ref(`${ROOT}/next`).set(null)   // الكيوسك سيعيد حساب "التالي" (يبدأ من 1)
+    ]);
+
+    // 2) نبضة للكيوسك ليتصفّر (input/preview)
+    const flagRef = db.ref(`${ROOT}/resetFlag`);
+    await flagRef.set(Date.now());
+    setTimeout(()=>flagRef.set(null), 1500);
+
+    // 3) نظافة واجهة الأوبريتور محليًا
+    nowNum.textContent="-"; 
+    nowMrn.textContent="";
+    refreshGridClasses();
+
+    // ارجعي لأول مدى 1–100
+    const firstBtn = document.querySelector(".ranges button");
+    if (firstBtn) showRange(1, 100, firstBtn);
+  };
+
+  // عكس آخر نداء على اللوحة
+  db.ref(`${ROOT}/latest`).on("value",s=>{
+    const v=s.val(); if(!v) return;
+    nowNum.textContent=v.number || "-";
+    nowMrn.textContent = v.mrn ? `MRN: ${v.mrn}` : "";
+  });
+
+  // بدء
+  showRange(1,100,rangesEl.firstElementChild);
+})();
+</script>
+<script>
+(function(){
+  // كلمة السر
+  const pass = "kpcreg";
+
+  // تحقق من الجلسة (sessionStorage فقط)
+  let entered = sessionStorage.getItem("authOK");
+  let counter = sessionStorage.getItem("counterNum");
+
+  if (!entered || !counter) {
+    // إنشاء overlay بسيط
+    const overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.top = 0;
+    overlay.style.left = 0;
+    overlay.style.width = "100vw";
+    overlay.style.height = "100vh";
+    overlay.style.background = "rgba(0,0,0,0.85)";
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.justifyContent = "center";
+    overlay.style.alignItems = "center";
+    overlay.style.zIndex = 9999;
+    overlay.style.color = "#fff";
+    overlay.style.fontFamily = "Segoe UI, sans-serif";
+    overlay.innerHTML = `
+      <h2 style="margin-bottom:20px;font-size:28px;">Access Required</h2>
+      <input id="pw" type="password" placeholder="Enter password" style="padding:12px 18px;font-size:18px;border-radius:8px;border:none;width:240px;text-align:center;margin-bottom:14px;" />
+      <input id="cn" type="number" placeholder="Counter number" style="padding:12px 18px;font-size:18px;border-radius:8px;border:none;width:240px;text-align:center;margin-bottom:14px;" />
+      <button id="go" style="padding:12px 20px;font-size:18px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;">Continue</button>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById("go").onclick = ()=>{
+      const pw = document.getElementById("pw").value.trim();
+      const cn = document.getElementById("cn").value.trim();
+      if(pw !== pass){ alert("Incorrect password."); return; }
+      if(!cn){ alert("Please enter counter number."); return; }
+      sessionStorage.setItem("authOK","true");
+      sessionStorage.setItem("counterNum", cn);
+      overlay.remove();
+
+      // نحفظ رقم الشباك في Firebase ليقرأه announcer
+      const db = firebase.database();
+      const ROOT = "cardiac_demo";
+      db.ref(`${ROOT}/operatorWindow`).set(Number(cn));
+    };
+  }
+})();
+</script>
+</body>
+</html>

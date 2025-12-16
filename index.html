@@ -21,9 +21,9 @@
   .next{background:#16a34a;color:#fff}.noshow{background:var(--amber);color:#111}.reset{background:var(--red);color:#fff}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:10px;max-width:980px;margin:14px auto 28px;padding:0 16px}
   .cell{border:2px solid var(--cellBorder);border-radius:14px;padding:14px 0;text-align:center;font-weight:800;font-size:18px;background:var(--cell);cursor:pointer;user-select:none;transition:.15s}
-  .cell.on{background:#111;color:#fff;border-color:#000}
-  .cell.no{background:#9ca3af;color:#fff;border-color:#888}
-  .cell.printed{background:#16a34a;color:#fff;border-color:#0f7a34}
+  .cell.on{background:#111;color:#fff;border-color:#000}        /* أسود = Served */
+  .cell.no{background:#9ca3af;color:#fff;border-color:#888}     /* رمادي = No-Show */
+  .cell.printed{background:#16a34a;color:#fff;border-color:#0f7a34} /* أخضر = Printed */
   .tip{max-width:980px;margin:0 auto 22px;padding:0 16px;color:#475569;text-align:center}
 </style>
 
@@ -31,6 +31,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 </head>
+
 <body>
   <h1>Main TTO</h1>
   <div class="ranges" id="ranges"></div>
@@ -55,19 +56,29 @@
 <script>
 (function(){
   // ===== Firebase =====
-  const cfg={apiKey:"AIzaSyCWWnMsge75Q3_MDF9Aj9wo4C5KD6RVGfw",authDomain:"q-matic-b7d77.firebaseapp.com",databaseURL:"https://q-matic-b7d77-default-rtdb.firebaseio.com",projectId:"q-matic-b7d77",storageBucket:"q-matic-b7d77.appspot.com",messagingSenderId:"908187704899",appId:"1:908187704899:web:b8bcf33cda90bafe81bef6"};
+  const cfg={
+    apiKey:"AIzaSyCWWnMsge75Q3_MDF9Aj9wo4C5KD6RVGfw",
+    authDomain:"q-matic-b7d77.firebaseapp.com",
+    databaseURL:"https://q-matic-b7d77-default-rtdb.firebaseio.com",
+    projectId:"q-matic-b7d77",
+    storageBucket:"q-matic-b7d77.appspot.com",
+    messagingSenderId:"908187704899",
+    appId:"1:908187704899:web:b8bcf33cda90bafe81bef6"
+  };
 
-  // حماية من إعادة التهيئة
+  // Prevent "already exists" crash
   if (!firebase.apps.length) firebase.initializeApp(cfg);
 
-  const db=firebase.database();
-  const ROOT="main_TTO";
+  const db = firebase.database();
+  const ROOT = "main_TTO";
 
-  const gridEl=document.getElementById("grid");
-  const nowNum=document.getElementById("nowNum");
-  const nowMrn=document.getElementById("nowMrn");
-  const rangesEl=document.getElementById("ranges");
+  const gridEl   = document.getElementById("grid");
+  const nowNum   = document.getElementById("nowNum");
+  const nowMrn   = document.getElementById("nowMrn");
+  const rangesEl = document.getElementById("ranges");
+  const msgEl    = document.getElementById("confirmationMsg");
 
+  // Ranges 1..1000
   const ranges=[]; for(let s=1;s<=1000;s+=100){ ranges.push([s,s+99]); }
   ranges.forEach(([a,b],i)=>{
     const btn=document.createElement("button");
@@ -79,28 +90,32 @@
   function clearActive(){[...rangesEl.children].forEach(b=>b.classList.remove("active"));}
 
   let served={}, printed={}, noshow={};
-
-  db.ref(`${ROOT}/served`).on("value",s=>{ served = s.val()||{}; refreshGridClasses(); });
-  db.ref(`${ROOT}/printed`).on("value",s=>{ printed = s.val()||{}; refreshGridClasses(); });
-  db.ref(`${ROOT}/noshow`).on("value",s=>{ noshow = s.val()||{}; refreshGridClasses(); });
-
   let curStart=1, curEnd=100;
+
+  db.ref(`${ROOT}/served`).on("value", s => { served  = s.val() || {}; refreshGridClasses(); });
+  db.ref(`${ROOT}/printed`).on("value",s => { printed = s.val() || {}; refreshGridClasses(); });
+  db.ref(`${ROOT}/noshow`).on("value", s => { noshow  = s.val() || {}; refreshGridClasses(); });
+
   function showRange(a,b,btn){
     clearActive(); btn.classList.add("active");
     curStart=a; curEnd=b;
+
     gridEl.innerHTML="";
     for(let n=a;n<=b;n++){
       const d=document.createElement("div");
-      d.className="cell"; d.textContent=n;
+      d.className="cell";
+      d.textContent=n;
 
-      d.addEventListener('click', ()=> serve(n));
+      d.addEventListener("click", ()=> serve(n));
 
-      d.addEventListener('dblclick', async (ev)=>{
+      d.addEventListener("dblclick", async (ev)=>{
         ev.preventDefault();
         await Promise.all([
           db.ref(`${ROOT}/served/${n}`).remove(),
           db.ref(`${ROOT}/noshow/${n}`).remove()
         ]);
+        // Local cleanup too (instant UI)
+        delete served[n]; delete noshow[n];
         refreshGridClasses();
       });
 
@@ -127,31 +142,46 @@
   async function serve(n){
     if (noshow[n]) { alert("❌ لا يمكن نداء تذكرة تم تسجيلها كـ No Show"); return; }
 
-    if (!served[n]) await db.ref(`${ROOT}/served/${n}`).set(true);
+    // ✅ Instant black locally
+    served[n] = true;
+    refreshGridClasses();
 
-    const mrnVal = await getMrn(n);
+    let mrnVal = null;
+    try {
+      // Write served
+      await db.ref(`${ROOT}/served/${n}`).set(true);
 
-    await Promise.all([
-      db.ref(`${ROOT}/served/${n}`).set(true),
-      db.ref(`${ROOT}/times/served/${n}`).set(firebase.database.ServerValue.TIMESTAMP),
-      db.ref(`${ROOT}/latest`).set({
-        number: n,
-        window: null,
-        ts: firebase.database.ServerValue.TIMESTAMP,
-        mrn: mrnVal || null
-      }),
-      db.ref(`${ROOT}/calls/${n}`).set({
-        number: n,
-        window: null,
-        windowNum: null,
-        mrn: mrnVal || null,
-        ts: firebase.database.ServerValue.TIMESTAMP
-      })
-    ]);
+      // Read MRN (optional)
+      mrnVal = await getMrn(n);
+
+      // Log latest + calls (kept as-is)
+      await Promise.all([
+        db.ref(`${ROOT}/times/served/${n}`).set(firebase.database.ServerValue.TIMESTAMP),
+        db.ref(`${ROOT}/latest`).set({
+          number: n,
+          window: null,
+          ts: firebase.database.ServerValue.TIMESTAMP,
+          mrn: mrnVal || null
+        }),
+        db.ref(`${ROOT}/calls/${n}`).set({
+          number: n,
+          window: null,
+          windowNum: null,
+          mrn: mrnVal || null,
+          ts: firebase.database.ServerValue.TIMESTAMP
+        })
+      ]);
+
+    } catch (e) {
+      // ❌ If Firebase blocks it, revert local black and show why
+      delete served[n];
+      refreshGridClasses();
+      alert("Firebase error: " + (e?.message || e));
+      return;
+    }
 
     nowNum.textContent = n;
     nowMrn.textContent = mrnVal ? `MRN: ${mrnVal}` : "";
-    refreshGridClasses();
 
     if(n===curEnd && curEnd<1000){
       const nextStart=curEnd+1, nextEnd=Math.min(curEnd+100,1000);
@@ -183,7 +213,6 @@
     if(n!=null) {
       await serve(n);
     } else {
-      const msgEl = document.getElementById("confirmationMsg");
       msgEl.textContent = `⚠️ تم أخذ التذكرة من شباك آخر`;
       setTimeout(() => msgEl.textContent = "", 4000);
     }
@@ -192,47 +221,65 @@
   document.getElementById("btnNo").onclick = async ()=>{
     const n = parseInt(nowNum.textContent,10);
     if(!n) return;
-    await db.ref(`${ROOT}/noshow/${n}`).set(true);
-    await db.ref(`${ROOT}/served/${n}`).remove();
+
+    // Local immediate UI
+    noshow[n] = true;
+    delete served[n];
     nowMrn.textContent = "";
     refreshGridClasses();
+
+    try {
+      await db.ref(`${ROOT}/noshow/${n}`).set(true);
+      await db.ref(`${ROOT}/served/${n}`).remove();
+    } catch (e) {
+      alert("Firebase error: " + (e?.message || e));
+    }
   };
 
   document.getElementById("btnReset").onclick = async () => {
     if (!confirm("سيتم مسح جميع البيانات (مطبوع/مخدّم/لم يحضر) وإعادة البدء. متابعة؟")) return;
 
-    await Promise.all([
-      db.ref(`${ROOT}/served`).remove(),
-      db.ref(`${ROOT}/noshow`).remove(),
-      db.ref(`${ROOT}/printed`).remove(),
-      db.ref(`${ROOT}/mrn`).remove(),
-      db.ref(`${ROOT}/latest`).remove(),
-      db.ref(`${ROOT}/latestPrinted`).remove(),
-      db.ref(`${ROOT}/next`).set(null)
-    ]);
+    try {
+      await Promise.all([
+        db.ref(`${ROOT}/served`).remove(),
+        db.ref(`${ROOT}/noshow`).remove(),
+        db.ref(`${ROOT}/printed`).remove(),
+        db.ref(`${ROOT}/mrn`).remove(),
+        db.ref(`${ROOT}/latest`).remove(),
+        db.ref(`${ROOT}/latestPrinted`).remove(),
+        db.ref(`${ROOT}/next`).set(null)
+      ]);
 
-    const flagRef = db.ref(`${ROOT}/resetFlag`);
-    await flagRef.set(Date.now());
-    setTimeout(()=>flagRef.set(null), 1500);
+      const flagRef = db.ref(`${ROOT}/resetFlag`);
+      await flagRef.set(Date.now());
+      setTimeout(()=>flagRef.set(null), 1500);
 
-    nowNum.textContent="-";
-    nowMrn.textContent="";
-    refreshGridClasses();
+      served = {}; noshow = {}; printed = {};
+      nowNum.textContent="-";
+      nowMrn.textContent="";
+      refreshGridClasses();
 
-    const firstBtn = document.querySelector(".ranges button");
-    if (firstBtn) showRange(1, 100, firstBtn);
+      const firstBtn = document.querySelector(".ranges button");
+      if (firstBtn) showRange(1, 100, firstBtn);
+
+    } catch (e) {
+      alert("Firebase error: " + (e?.message || e));
+    }
   };
 
-  db.ref(`${ROOT}/latest`).on("value",s=>{
+  db.ref(`${ROOT}/latest`).on("value", s=>{
     const v=s.val(); if(!v) return;
-    nowNum.textContent=v.number || "-";
+    nowNum.textContent = v.number || "-";
     nowMrn.textContent = v.mrn ? `MRN: ${v.mrn}` : "";
   });
 
+  // Start
   showRange(1,100,rangesEl.firstElementChild);
+
 })();
 </script>
 
+<!-- Password overlay (no counter) -->
 <script>
 (function(){
   const pass = "kpcreg";
@@ -272,6 +319,8 @@
     const pw = pwEl.value.trim();
     if (pw !== pass) { alert("Incorrect password."); return; }
     sessionStorage.setItem("authOK","true");
+    overlay.style.display = "none";
+    overlay.style.pointerEvents = "none";
     overlay.remove();
   }
 

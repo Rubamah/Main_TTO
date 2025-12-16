@@ -277,7 +277,7 @@ if(n!=null) {
 
   // تحقق من الجلسة (sessionStorage فقط)
   let entered = sessionStorage.getItem("authOK");
-
+if (!entered) {
     // إنشاء overlay بسيط
     const overlay = document.createElement("div");
     overlay.style.position = "fixed";

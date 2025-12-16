@@ -306,7 +306,6 @@ if (!entered) {
       const cn = document.getElementById("cn").value.trim();
       if(pw !== pass){ alert("Incorrect password."); return; }
       sessionStorage.setItem("authOK","true");
-      sessionStorage.setItem("counterNum", cn);
       overlay.remove();
 
       // نحفظ رقم الشباك في Firebase ليقرأه announcer

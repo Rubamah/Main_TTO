@@ -4,27 +4,176 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Main TTO</title>
+
 <style>
-  :root{--bg:#f5f7fb;--panel:#111;--text:#fff;--muted:#cbd5e1;--green:#16a34a;--amber:#f59e0b;--red:#e11d48;--ink:#0f172a;--cell:#fff;--cellBorder:#d1d5db}
-  *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink)}
-  h1{font-size:clamp(26px,4.5vw,34px);text-align:center;margin:16px 0 8px}
-  .ranges{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;max-width:980px;margin:0 auto 14px;padding:0 16px}
-  .ranges button{padding:12px 16px;border-radius:14px;border:0;background:#eaeef5;color:#0b57d0;font-weight:800;font-size:18px;cursor:pointer}
-  .ranges button.active{background:#111;color:#fff}
-  .panel{max-width:980px;margin:10px auto;padding:22px;border-radius:22px;background:var(--panel);color:var(--text)}
-  .now{display:flex;flex-direction:column;align-items:center;gap:8px}
-  .now h2{margin:0;font-size:clamp(22px,4vw,28px);font-weight:900}
-  .big{font-size:clamp(64px,14vw,110px);font-weight:900;line-height:1}
-  .mrn{font-size:clamp(16px,3.3vw,20px);opacity:.85;min-height:1.2em}
-  .btns{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:10px}
-  .btn{border:0;border-radius:14px;padding:12px 22px;font-weight:900;font-size:18px;cursor:pointer}
-  .next{background:#16a34a;color:#fff}.noshow{background:var(--amber);color:#111}.reset{background:var(--red);color:#fff}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:10px;max-width:980px;margin:14px auto 28px;padding:0 16px}
-  .cell{border:2px solid var(--cellBorder);border-radius:14px;padding:14px 0;text-align:center;font-weight:800;font-size:18px;background:var(--cell);cursor:pointer;user-select:none;transition:.15s}
-  .cell.on{background:#111;color:#fff;border-color:#000}        /* أسود = Served */
-  .cell.no{background:#9ca3af;color:#fff;border-color:#888}     /* رمادي = No-Show */
-  .cell.printed{background:#16a34a;color:#fff;border-color:#0f7a34} /* أخضر = Printed */
-  .tip{max-width:980px;margin:0 auto 22px;padding:0 16px;color:#475569;text-align:center}
+  :root{
+    --bg:#f5f7fb;
+    --panel:#111;
+    --text:#fff;
+    --muted:#cbd5e1;
+    --green:#16a34a;
+    --amber:#f59e0b;
+    --red:#e11d48;
+    --ink:#0f172a;
+    --cell:#fff;
+    --cellBorder:#d1d5db
+  }
+
+  *{
+    box-sizing:border-box
+  }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink)
+  }
+
+  h1{
+    font-size:clamp(26px,4.5vw,34px);
+    text-align:center;
+    margin:16px 0 8px
+  }
+
+  .ranges{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:14px;
+    max-width:980px;
+    margin:0 auto 14px;
+    padding:0 16px
+  }
+
+  .ranges button{
+    padding:12px 16px;
+    border-radius:14px;
+    border:0;
+    background:#eaeef5;
+    color:#0b57d0;
+    font-weight:800;
+    font-size:18px;
+    cursor:pointer
+  }
+
+  .ranges button.active{
+    background:#111;
+    color:#fff
+  }
+
+  .panel{
+    max-width:980px;
+    margin:10px auto;
+    padding:22px;
+    border-radius:22px;
+    background:var(--panel);
+    color:var(--text)
+  }
+
+  .now{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px
+  }
+
+  .now h2{
+    margin:0;
+    font-size:clamp(22px,4vw,28px);
+    font-weight:900
+  }
+
+  .big{
+    font-size:clamp(64px,14vw,110px);
+    font-weight:900;
+    line-height:1
+  }
+
+  .mrn{
+    font-size:clamp(16px,3.3vw,20px);
+    opacity:.85;
+    min-height:1.2em
+  }
+
+  .btns{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    justify-content:center;
+    margin-top:10px
+  }
+
+  .btn{
+    border:0;
+    border-radius:14px;
+    padding:12px 22px;
+    font-weight:900;
+    font-size:18px;
+    cursor:pointer
+  }
+
+  .next{
+    background:#16a34a;
+    color:#fff
+  }
+
+  .noshow{
+    background:var(--amber);
+    color:#111
+  }
+
+  .reset{
+    background:var(--red);
+    color:#fff
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(64px,1fr));
+    gap:10px;
+    max-width:980px;
+    margin:14px auto 28px;
+    padding:0 16px
+  }
+
+  .cell{
+    border:2px solid var(--cellBorder);
+    border-radius:14px;
+    padding:14px 0;
+    text-align:center;
+    font-weight:800;
+    font-size:18px;
+    background:var(--cell);
+    cursor:pointer;
+    user-select:none;
+    transition:.15s
+  }
+
+  .cell.on{
+    background:#111;
+    color:#fff;
+    border-color:#000
+  }
+
+  .cell.no{
+    background:#9ca3af;
+    color:#fff;
+    border-color:#888
+  }
+
+  .cell.printed{
+    background:#16a34a;
+    color:#fff;
+    border-color:#0f7a34
+  }
+
+  .tip{
+    max-width:980px;
+    margin:0 auto 22px;
+    padding:0 16px;
+    color:#475569;
+    text-align:center
+  }
 </style>
 
 <!-- Firebase compat -->
@@ -33,30 +182,44 @@
 </head>
 
 <body>
-  <h1>Main TTO</h1>
-  <div class="ranges" id="ranges"></div>
 
-  <div class="panel">
-    <div class="now">
-      <h2>Now Serving</h2>
-      <div class="big" id="nowNum">-</div>
-      <div class="mrn" id="nowMrn"></div>
-      <div class="btns">
-        <button class="btn next"   id="btnNext">Next</button>
-        <button class="btn noshow" id="btnNo">No Show</button>
-        <button class="btn reset"  id="btnReset">Restart</button>
-      </div>
-      <div id="confirmationMsg" style="margin-top:12px;font-weight:800;color:#16a34a;font-size:18px;"></div>
+<h1>Main TTO</h1>
+
+<div class="ranges" id="ranges"></div>
+
+<div class="panel">
+  <div class="now">
+    <h2>Now Serving</h2>
+
+    <div class="big" id="nowNum">-</div>
+
+    <div class="mrn" id="nowMrn"></div>
+
+    <div class="btns">
+      <button class="btn next" id="btnNext">Next</button>
+      <button class="btn noshow" id="btnNo">No Show</button>
+      <button class="btn reset" id="btnReset">Restart</button>
+    </div>
+
+    <div
+      id="confirmationMsg"
+      style="margin-top:12px;font-weight:800;color:#16a34a;font-size:18px;">
     </div>
   </div>
+</div>
 
-  <div id="grid" class="grid"></div>
-  <p class="tip">أخضر = مطبوع، أسود = تم النداء، رمادي = لم يحضر. دبل-كلك على الأسود أو الرمادي يعيد المربع أبيض.</p>
+<div id="grid" class="grid"></div>
+
+<p class="tip">
+  ضغطة أولى = أخضر، ضغطة ثانية = أسود، دبل كلك = رمادي.
+</p>
 
 <script>
 (function(){
+
   // ===== Firebase =====
-  const cfg={
+
+  const cfg = {
     apiKey:"AIzaSyCWWnMsge75Q3_MDF9Aj9wo4C5KD6RVGfw",
     authDomain:"q-matic-b7d77.firebaseapp.com",
     databaseURL:"https://q-matic-b7d77-default-rtdb.firebaseio.com",
@@ -66,8 +229,9 @@
     appId:"1:908187704899:web:b8bcf33cda90bafe81bef6"
   };
 
-  // Prevent "already exists" crash
-  if (!firebase.apps.length) firebase.initializeApp(cfg);
+  if (!firebase.apps.length) {
+    firebase.initializeApp(cfg);
+  }
 
   const db = firebase.database();
   const ROOT = "main_TTO";
@@ -78,166 +242,338 @@
   const rangesEl = document.getElementById("ranges");
   const msgEl    = document.getElementById("confirmationMsg");
 
-  // Ranges 1..1000
-  const ranges=[]; for(let s=1;s<=1000;s+=100){ ranges.push([s,s+99]); }
-  ranges.forEach(([a,b],i)=>{
-    const btn=document.createElement("button");
-    btn.textContent=`${a}–${b}`;
-    btn.onclick=()=>showRange(a,b,btn);
+  const ranges = [];
+
+  for (let s = 1; s <= 1000; s += 100) {
+    ranges.push([s, s + 99]);
+  }
+
+  ranges.forEach(([a,b],i) => {
+    const btn = document.createElement("button");
+
+    btn.textContent = `${a}–${b}`;
+
+    btn.onclick = () => {
+      showRange(a,b,btn);
+    };
+
     rangesEl.appendChild(btn);
-    if(i===0) btn.classList.add("active");
+
+    if (i === 0) {
+      btn.classList.add("active");
+    }
   });
-  function clearActive(){[...rangesEl.children].forEach(b=>b.classList.remove("active"));}
 
-  let served={}, printed={}, noshow={};
-  let curStart=1, curEnd=100;
+  function clearActive(){
+    [...rangesEl.children].forEach(btn => {
+      btn.classList.remove("active");
+    });
+  }
 
-  db.ref(`${ROOT}/served`).on("value", s => { served  = s.val() || {}; refreshGridClasses(); });
-  db.ref(`${ROOT}/printed`).on("value",s => { printed = s.val() || {}; refreshGridClasses(); });
-  db.ref(`${ROOT}/noshow`).on("value", s => { noshow  = s.val() || {}; refreshGridClasses(); });
+  let served = {};
+  let printed = {};
+  let noshow = {};
+
+  let curStart = 1;
+  let curEnd = 100;
+
+  db.ref(`${ROOT}/served`).on("value", snapshot => {
+    served = snapshot.val() || {};
+    refreshGridClasses();
+  });
+
+  db.ref(`${ROOT}/printed`).on("value", snapshot => {
+    printed = snapshot.val() || {};
+    refreshGridClasses();
+  });
+
+  db.ref(`${ROOT}/noshow`).on("value", snapshot => {
+    noshow = snapshot.val() || {};
+    refreshGridClasses();
+  });
 
   function showRange(a,b,btn){
-    clearActive(); btn.classList.add("active");
-    curStart=a; curEnd=b;
+    clearActive();
 
-    gridEl.innerHTML="";
-    for(let n=a;n<=b;n++){
-      const d=document.createElement("div");
-      d.className="cell";
-      d.textContent=n;
+    if (btn) {
+      btn.classList.add("active");
+    }
 
-      d.addEventListener("click", ()=> serve(n));
+    curStart = a;
+    curEnd = b;
 
-      d.addEventListener("dblclick", async (ev)=>{
-        ev.preventDefault();
-        await Promise.all([
-          db.ref(`${ROOT}/served/${n}`).remove(),
-          db.ref(`${ROOT}/noshow/${n}`).remove()
-        ]);
-        // Local cleanup too (instant UI)
-        delete served[n]; delete noshow[n];
-        refreshGridClasses();
+    gridEl.innerHTML = "";
+
+    for (let n = a; n <= b; n++) {
+      const cell = document.createElement("div");
+
+      cell.className = "cell";
+      cell.textContent = n;
+
+      /*
+        نؤخر تنفيذ الضغطة الواحدة قليلاً؛
+        حتى يستطيع المتصفح التمييز بين click و dblclick.
+      */
+
+      let clickTimer = null;
+
+      cell.addEventListener("click", () => {
+        clearTimeout(clickTimer);
+
+        clickTimer = setTimeout(() => {
+          handleNumberClick(n);
+        }, 260);
       });
 
-      gridEl.appendChild(d);
+      cell.addEventListener("dblclick", async event => {
+        event.preventDefault();
+
+        clearTimeout(clickTimer);
+
+        await markAsNoShow(n);
+      });
+
+      gridEl.appendChild(cell);
     }
+
     refreshGridClasses();
   }
 
   function refreshGridClasses(){
-    [...gridEl.children].forEach(cell=>{
+    [...gridEl.children].forEach(cell => {
       const n = parseInt(cell.textContent,10);
+
       cell.classList.remove("on","no","printed");
-      if     (served[n])  cell.classList.add("on");
-      else if(noshow[n])  cell.classList.add("no");
-      else if(printed[n]) cell.classList.add("printed");
+
+      if (served[n]) {
+        cell.classList.add("on");
+      } else if (noshow[n]) {
+        cell.classList.add("no");
+      } else if (printed[n]) {
+        cell.classList.add("printed");
+      }
     });
   }
 
+  /*
+    الضغطة الأولى:
+    أبيض ← أخضر
+
+    الضغطة الثانية:
+    أخضر ← أسود
+
+    عند الضغط على رقم أسود أو رمادي:
+    لا يحدث شيء.
+  */
+
+  async function handleNumberClick(n){
+
+    if (noshow[n]) {
+      return;
+    }
+
+    if (served[n]) {
+      return;
+    }
+
+    if (printed[n]) {
+      await serve(n);
+      return;
+    }
+
+    await markAsPrinted(n);
+  }
+
+  async function markAsPrinted(n){
+
+    printed[n] = true;
+    delete served[n];
+    delete noshow[n];
+
+    refreshGridClasses();
+
+    try {
+      await Promise.all([
+        db.ref(`${ROOT}/printed/${n}`).set(true),
+        db.ref(`${ROOT}/served/${n}`).remove(),
+        db.ref(`${ROOT}/noshow/${n}`).remove(),
+        db.ref(`${ROOT}/times/printed/${n}`)
+          .set(firebase.database.ServerValue.TIMESTAMP)
+      ]);
+
+    } catch (e) {
+      delete printed[n];
+      refreshGridClasses();
+
+      alert("Firebase error: " + (e?.message || e));
+    }
+  }
+
+  async function markAsNoShow(n){
+
+    noshow[n] = true;
+
+    delete served[n];
+    delete printed[n];
+
+    refreshGridClasses();
+
+    if (parseInt(nowNum.textContent,10) === n) {
+      nowMrn.textContent = "";
+    }
+
+    try {
+      await Promise.all([
+        db.ref(`${ROOT}/noshow/${n}`).set(true),
+        db.ref(`${ROOT}/served/${n}`).remove(),
+        db.ref(`${ROOT}/printed/${n}`).remove()
+      ]);
+
+    } catch (e) {
+      alert("Firebase error: " + (e?.message || e));
+    }
+  }
+
   async function getMrn(n){
-    const m = await db.ref(`${ROOT}/mrn/${n}`).get();
-    return m.exists()? m.val(): null;
+    const snapshot = await db.ref(`${ROOT}/mrn/${n}`).get();
+
+    return snapshot.exists()
+      ? snapshot.val()
+      : null;
   }
 
   async function serve(n){
-    if (noshow[n]) { alert("❌ لا يمكن نداء تذكرة تم تسجيلها كـ No Show"); return; }
 
-    // ✅ Instant black locally
+    if (noshow[n]) {
+      alert("❌ لا يمكن نداء تذكرة تم تسجيلها كـ No Show");
+      return;
+    }
+
     served[n] = true;
+    delete printed[n];
+    delete noshow[n];
+
     refreshGridClasses();
 
     let mrnVal = null;
-    try {
-      // Write served
-      await db.ref(`${ROOT}/served/${n}`).set(true);
 
-      // Read MRN (optional)
+    try {
+      await Promise.all([
+        db.ref(`${ROOT}/served/${n}`).set(true),
+        db.ref(`${ROOT}/printed/${n}`).remove(),
+        db.ref(`${ROOT}/noshow/${n}`).remove()
+      ]);
+
       mrnVal = await getMrn(n);
 
-      // Log latest + calls (kept as-is)
       await Promise.all([
-        db.ref(`${ROOT}/times/served/${n}`).set(firebase.database.ServerValue.TIMESTAMP),
+        db.ref(`${ROOT}/times/served/${n}`)
+          .set(firebase.database.ServerValue.TIMESTAMP),
+
         db.ref(`${ROOT}/latest`).set({
-          number: n,
-          window: null,
-          ts: firebase.database.ServerValue.TIMESTAMP,
-          mrn: mrnVal || null
+          number:n,
+          window:null,
+          ts:firebase.database.ServerValue.TIMESTAMP,
+          mrn:mrnVal || null
         }),
+
         db.ref(`${ROOT}/calls/${n}`).set({
-          number: n,
-          window: null,
-          windowNum: null,
-          mrn: mrnVal || null,
-          ts: firebase.database.ServerValue.TIMESTAMP
+          number:n,
+          window:null,
+          windowNum:null,
+          mrn:mrnVal || null,
+          ts:firebase.database.ServerValue.TIMESTAMP
         })
       ]);
 
     } catch (e) {
-      // ❌ If Firebase blocks it, revert local black and show why
       delete served[n];
       refreshGridClasses();
+
       alert("Firebase error: " + (e?.message || e));
       return;
     }
 
     nowNum.textContent = n;
-    nowMrn.textContent = mrnVal ? `MRN: ${mrnVal}` : "";
+    nowMrn.textContent = mrnVal
+      ? `MRN: ${mrnVal}`
+      : "";
 
-    if(n===curEnd && curEnd<1000){
-      const nextStart=curEnd+1, nextEnd=Math.min(curEnd+100,1000);
-      const nextBtn = [...rangesEl.children][Math.floor((nextStart-1)/100)];
+    if (n === curEnd && curEnd < 1000) {
+      const nextStart = curEnd + 1;
+      const nextEnd = Math.min(curEnd + 100,1000);
+
+      const nextBtn =
+        [...rangesEl.children][Math.floor((nextStart - 1) / 100)];
+
       showRange(nextStart,nextEnd,nextBtn);
     }
   }
 
-  async function claimNextTicket(start, end) {
+  async function claimNextTicket(start,end){
+
     for (let n = start; n <= end; n++) {
-      if (noshow[n]) continue;
+
+      if (noshow[n]) {
+        continue;
+      }
 
       const ref = db.ref(`${ROOT}/served/${n}`);
+
       const result = await ref.transaction(current => {
-        if (current === true) return;
+        if (current === true) {
+          return;
+        }
+
         return true;
       });
 
       if (result.committed) {
-        await db.ref(`${ROOT}/noshow/${n}`).remove();
+        await Promise.all([
+          db.ref(`${ROOT}/noshow/${n}`).remove(),
+          db.ref(`${ROOT}/printed/${n}`).remove()
+        ]);
+
         return n;
       }
     }
+
     return null;
   }
 
-  document.getElementById("btnNext").onclick = async ()=>{
-    const n = await claimNextTicket(curStart, curEnd);
-    if(n!=null) {
+  document.getElementById("btnNext").onclick = async () => {
+    const n = await claimNextTicket(curStart,curEnd);
+
+    if (n !== null) {
       await serve(n);
     } else {
-      msgEl.textContent = `⚠️ تم أخذ التذكرة من شباك آخر`;
-      setTimeout(() => msgEl.textContent = "", 4000);
+      msgEl.textContent = "⚠️ تم أخذ التذكرة من شباك آخر";
+
+      setTimeout(() => {
+        msgEl.textContent = "";
+      },4000);
     }
   };
 
-  document.getElementById("btnNo").onclick = async ()=>{
+  document.getElementById("btnNo").onclick = async () => {
     const n = parseInt(nowNum.textContent,10);
-    if(!n) return;
 
-    // Local immediate UI
-    noshow[n] = true;
-    delete served[n];
-    nowMrn.textContent = "";
-    refreshGridClasses();
-
-    try {
-      await db.ref(`${ROOT}/noshow/${n}`).set(true);
-      await db.ref(`${ROOT}/served/${n}`).remove();
-    } catch (e) {
-      alert("Firebase error: " + (e?.message || e));
+    if (!n) {
+      return;
     }
+
+    await markAsNoShow(n);
   };
 
   document.getElementById("btnReset").onclick = async () => {
-    if (!confirm("سيتم مسح جميع البيانات (مطبوع/مخدّم/لم يحضر) وإعادة البدء. متابعة؟")) return;
+
+    const approved = confirm(
+      "سيتم مسح جميع البيانات (مطبوع/مخدّم/لم يحضر) وإعادة البدء. متابعة؟"
+    );
+
+    if (!approved) {
+      return;
+    }
 
     try {
       await Promise.all([
@@ -251,42 +587,65 @@
       ]);
 
       const flagRef = db.ref(`${ROOT}/resetFlag`);
-      await flagRef.set(Date.now());
-      setTimeout(()=>flagRef.set(null), 1500);
 
-      served = {}; noshow = {}; printed = {};
-      nowNum.textContent="-";
-      nowMrn.textContent="";
+      await flagRef.set(Date.now());
+
+      setTimeout(() => {
+        flagRef.set(null);
+      },1500);
+
+      served = {};
+      noshow = {};
+      printed = {};
+
+      nowNum.textContent = "-";
+      nowMrn.textContent = "";
+
       refreshGridClasses();
 
       const firstBtn = document.querySelector(".ranges button");
-      if (firstBtn) showRange(1, 100, firstBtn);
+
+      if (firstBtn) {
+        showRange(1,100,firstBtn);
+      }
 
     } catch (e) {
       alert("Firebase error: " + (e?.message || e));
     }
   };
 
-  db.ref(`${ROOT}/latest`).on("value", s=>{
-    const v=s.val(); if(!v) return;
-    nowNum.textContent = v.number || "-";
-    nowMrn.textContent = v.mrn ? `MRN: ${v.mrn}` : "";
+  db.ref(`${ROOT}/latest`).on("value", snapshot => {
+    const value = snapshot.val();
+
+    if (!value) {
+      return;
+    }
+
+    nowNum.textContent = value.number || "-";
+
+    nowMrn.textContent = value.mrn
+      ? `MRN: ${value.mrn}`
+      : "";
   });
 
-  // Start
   showRange(1,100,rangesEl.firstElementChild);
 
 })();
 </script>
 
-<!-- Password overlay (no counter) -->
+<!-- Password overlay -->
 <script>
 (function(){
+
   const pass = "kpcreg";
   const entered = sessionStorage.getItem("authOK");
-  if (entered) return;
+
+  if (entered) {
+    return;
+  }
 
   const overlay = document.createElement("div");
+
   overlay.style.position = "fixed";
   overlay.style.top = 0;
   overlay.style.left = 0;
@@ -302,14 +661,40 @@
   overlay.style.fontFamily = "Segoe UI, sans-serif";
 
   overlay.innerHTML = `
-    <h2 style="margin-bottom:20px;font-size:28px;">Access Required</h2>
-    <input id="pw" type="password" placeholder="Enter password"
-      style="padding:12px 18px;font-size:18px;border-radius:8px;border:none;width:240px;text-align:center;margin-bottom:14px;" />
-    <button id="go"
-      style="padding:12px 20px;font-size:18px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;">
+    <h2 style="margin-bottom:20px;font-size:28px;">
+      Access Required
+    </h2>
+
+    <input
+      id="pw"
+      type="password"
+      placeholder="Enter password"
+      style="
+        padding:12px 18px;
+        font-size:18px;
+        border-radius:8px;
+        border:none;
+        width:240px;
+        text-align:center;
+        margin-bottom:14px;
+      "
+    />
+
+    <button
+      id="go"
+      style="
+        padding:12px 20px;
+        font-size:18px;
+        border:none;
+        border-radius:8px;
+        background:#2563eb;
+        color:#fff;
+        cursor:pointer;
+      ">
       Continue
     </button>
   `;
+
   document.body.appendChild(overlay);
 
   const pwEl = document.getElementById("pw");
@@ -317,15 +702,28 @@
 
   function submit(){
     const pw = pwEl.value.trim();
-    if (pw !== pass) { alert("Incorrect password."); return; }
+
+    if (pw !== pass) {
+      alert("Incorrect password.");
+      return;
+    }
+
     sessionStorage.setItem("authOK","true");
+
     overlay.style.display = "none";
     overlay.style.pointerEvents = "none";
+
     overlay.remove();
   }
 
   goEl.onclick = submit;
-  pwEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") submit(); });
+
+  pwEl.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      submit();
+    }
+  });
+
 })();
 </script>
 

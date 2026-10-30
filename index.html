@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Main TTO</title>
+<style>
+:root{--bg:#f5f7fb;--panel:#111;--text:#fff;--muted:#cbd5e1;--green:#16a34a;--amber:#f59e0b;--red:#e11d48;--ink:#0f172a;--cell:#fff;--cellBorder:#d1d5db}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink)}
+h1{font-size:clamp(26px,4.5vw,34px);text-align:center;margin:16px 0 8px}
+.ranges{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;max-width:980px;margin:0 auto 14px;padding:0 16px}
+.ranges button{padding:12px 16px;border-radius:14px;border:0;background:#eaeef5;color:#0b57d0;font-weight:800;font-size:18px;cursor:pointer}
+.ranges button.active{background:#111;color:#fff}
+.panel{max-width:980px;margin:10px auto;padding:22px;border-radius:22px;background:var(--panel);color:var(--text)}
+.now{display:flex;flex-direction:column;align-items:center;gap:8px}
+.now h2{margin:0;font-size:clamp(22px,4vw,28px);font-weight:900}
+.big{font-size:clamp(64px,14vw,110px);font-weight:900;line-height:1}
+.mrn{font-size:clamp(16px,3.3vw,20px);opacity:.85;min-height:1.2em}
+.btns{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.btn{border:0;border-radius:14px;padding:12px 22px;font-weight:900;font-size:18px;cursor:pointer}
+.next{background:#16a34a;color:#fff}.noshow{background:var(--amber);color:#111}.reset{background:var(--red);color:#fff}
+.giveWrap{margin-top:18px;text-align:center}
+.give{background:#dc2626;color:#fff;min-width:230px}
+.give:disabled{opacity:.55;cursor:not-allowed}
+.giveHint{margin-top:7px;font-size:13px;color:#cbd5e1;font-weight:600;direction:rtl}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:10px;max-width:980px;margin:14px auto 28px;padding:0 16px}
+.cell{position:relative;border:2px solid var(--cellBorder);border-radius:14px;padding:18px 0 18px;text-align:center;font-weight:800;font-size:18px;background:var(--cell);cursor:pointer;user-select:none;transition:.15s}
+.cellNumber{pointer-events:none}
+
+.waitMarker{position:absolute;top:5px;right:6px;width:14px;height:14px;padding:0;border:2px solid #7c3aed;border-radius:3px;background:transparent;cursor:pointer;z-index:4}
+.waitMarker.active{background:#2563eb;border-color:#2563eb;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.cell.on .waitMarker,.cell.no .waitMarker{border-color:#a78bfa}
+.cell.on .waitMarker.active,.cell.no .waitMarker.active{border-color:#60a5fa;background:#2563eb}
+
+.recallBtn{
+  position:absolute;
+  left:5px;
+  bottom:4px;
+  width:24px;
+  height:24px;
+  padding:2px;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,.92);
+  cursor:pointer;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 1px 3px rgba(0,0,0,.12)
+}
+.recallBtn svg{width:19px;height:19px;display:block}
+.recallBtn:active{transform:scale(.92)}
+
+.waitingPopup{position:fixed;inset:0;background:rgba(15,23,42,.42);display:none;align-items:center;justify-content:center;z-index:10000;padding:16px;direction:rtl}
+.waitingPopup.open{display:flex}
+.waitingCard{width:min(92vw,330px);background:#fff;color:#0f172a;border-radius:16px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.3);text-align:right}
+.waitingCard h3{margin:0 0 12px;font-size:18px;text-align:center}
+.waitingCard input{width:100%;padding:11px 12px;margin:6px 0;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;text-align:right}
+.waitingActions{display:flex;gap:10px;margin-top:12px}
+.waitingActions button{flex:1;border:0;border-radius:10px;padding:10px 12px;font-size:17px;font-weight:800;cursor:pointer}
+#saveWaiting{background:#2563eb;color:#fff}
+#doneWaiting{background:#111;color:#fff;max-width:58px}
+#closeWaiting{position:absolute;top:10px;left:12px;border:0;background:transparent;color:#64748b;font-size:22px;cursor:pointer}
+.waitingTimer{margin:10px 0 2px;padding:10px 12px;border-radius:10px;background:#eff6ff;color:#1d4ed8;text-align:center;font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+.waitingTimer.final{background:#f1f5f9;color:#0f172a}
+.waitingCardInner{position:relative}
+
+.cell.on{background:#111;color:#fff;border-color:#000}
+.cell.no{background:#9ca3af;color:#fff;border-color:#888}
+.cell.printed{background:#16a34a;color:#fff;border-color:#0f7a34}
+.cell.waitingState{background:#2563eb;color:#fff;border-color:#1d4ed8}
+.cell.waitingState .waitMarker{background:#1d4ed8;border-color:#dbeafe}
+.cell.waitingState .waitMarker.active{background:#1d4ed8;border-color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
+
+.instructions{max-width:980px;margin:0 auto 26px;padding:0 16px;color:#475569;text-align:center;direction:rtl;line-height:1.8}
+.instructions .keys{font-weight:800;color:#0f172a;font-size:16px;margin-bottom:8px}
+.instructions .legend{font-size:14px;margin-bottom:8px}
+.instructions .tip{font-size:14px}
+
+#accessOverlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;justify-content:center;align-items:center;z-index:9999;color:#fff;font-family:Segoe UI,Arial,sans-serif;padding:18px}
+.accessBox{display:flex;flex-direction:column;align-items:center;gap:14px;width:min(100%,340px)}
+.accessBox h2{margin:0 0 8px;font-size:28px}
+.accessBox input,.accessBox select{padding:12px 18px;font-size:18px;border-radius:8px;border:none;width:100%;background:#fff;color:#111;text-align:center}
+.accessBox label{font-size:17px;font-weight:700;align-self:stretch;text-align:center}
+.accessBox button{padding:12px 20px;font-size:18px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;width:100%}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+</head>
+
+<body>
+<div id="accessOverlay">
+  <div class="accessBox">
+    <h2>Access Required</h2>
+    <input id="pw" type="password" placeholder="Enter password" autocomplete="off" />
+    <label for="counterSelect">Select Counter / اختر الشباك</label>
+    <select id="counterSelect" required>
+      <option value="" selected disabled>Choose Counter</option>
+      <option value="1">Counter 1</option>
+      <option value="2">Counter 2</option>
+      <option value="3">Counter 3</option>
+      <option value="4">Counter 4</option>
+    </select>
+    <button id="go" type="button">Continue</button>
+  </div>
+</div>
+
+<h1>Main TTO</h1>
+<div class="ranges" id="ranges"></div>
+
+<div class="panel">
+  <div class="now">
+    <h2>Now Serving</h2>
+    <div class="big" id="nowNum">-</div>
+    <div class="mrn" id="nowMrn"></div>
+
+    <div class="btns">
+      <button class="btn next" id="btnNext">Next</button>
+      <button class="btn noshow" id="btnNo">No Show</button>
+      <button class="btn reset" id="btnReset">Restart</button>
+    </div>
+
+    <div class="giveWrap">
+      <button class="btn give" id="btnGiveNext">Give Next Ticket</button>
+      <div class="giveHint">اضغط عند إعطاء التذكرة الجديدة للعميل</div>
+    </div>
+
+    <div id="confirmationMsg" style="margin-top:12px;font-weight:800;color:#16a34a;font-size:18px;"></div>
+  </div>
+</div>
+
+<div id="grid" class="grid"></div>
+
+<div class="instructions">
+  <div class="keys">
+    زر ENTER، راح يقوم بإعطاء تذكرة جديدة<br>
+    زر السهم اليمين →، راح يقوم بنداء العميل
+  </div>
+
+  <div class="legend">
+    (أخضر &gt; عميل موجود &nbsp; | &nbsp;
+    أزرق &gt; الأدوية تتحضر &nbsp; | &nbsp;
+    أسود &gt; عميل تم نداءه &nbsp; | &nbsp;
+    رمادي &gt; عميل لم يحضر لدوره &nbsp; | &nbsp;
+    Restart &gt; لبدأ يوم جديد وتصفير الأرقام)
+  </div>
+
+  <div class="tip">ضغطة أولى = أخضر، ضغطة ثانية = أسود، دبل كلك = رمادي.</div>
+  <div class="tip" style="margin-top:8px;">المربع الأزرق الصغير &gt; عند ضغطه يتيح خاصية العميل تحت الانتظار ويمكنك إضافة رقمه واسمه للمتابعة؛ عند الحفظ تتحول التذكرة كاملة إلى اللون الأزرق، وفي حالة الانتهاء يمكنك الضغط على علامة صح لإقفال الرقم وتحويله للون الاسود</div>
+  <div class="tip" style="margin-top:8px;">🔊↻ &gt; إعادة نداء نفس العميل على نفس الشباك بدون تغيير لون أو حالة التذكرة</div>
+</div>
+
+<div id="waitingPopup" class="waitingPopup" aria-hidden="true">
+  <div class="waitingCard">
+    <div class="waitingCardInner">
+      <button id="closeWaiting" type="button" aria-label="إغلاق">×</button>
+      <h3 id="waitingTitle">تذكرة</h3>
+      <input id="waitingMrn" type="text" inputmode="numeric" placeholder="MRN (اختياري)" />
+      <input id="waitingName" type="text" placeholder="الاسم الثنائي (اختياري)" />
+      <div id="waitingTimer" class="waitingTimer">⏱ 00:00</div>
+      <div class="waitingActions">
+        <button id="saveWaiting" type="button">Save</button>
+        <button id="doneWaiting" type="button" title="إنهاء">✅</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const pass="kpcreg";
+  const overlay=document.getElementById("accessOverlay");
+  const pwEl=document.getElementById("pw");
+  const counterEl=document.getElementById("counterSelect");
+  const storedCounter=sessionStorage.getItem("mainTTOCounter");
+
+  if(sessionStorage.getItem("authOK")==="true" && /^[1-4]$/.test(storedCounter||"")){
+    overlay.remove();
+  }
+
+  function submit(){
+    if(pwEl.value.trim()!==pass){alert("Incorrect password.");return;}
+    if(!/^[1-4]$/.test(counterEl.value)){alert("Please select Counter 1, 2, 3 or 4.");return;}
+    sessionStorage.setItem("authOK","true");
+    sessionStorage.setItem("mainTTOCounter",counterEl.value);
+    overlay.remove();
+  }
+
+  document.getElementById("go").onclick=submit;
+  pwEl.addEventListener("keydown",e=>{if(e.key==="Enter")submit();});
+  counterEl.addEventListener("keydown",e=>{if(e.key==="Enter")submit();});
+})();
+</script>
+
+<script>
+(function(){
+  const cfg={
+    apiKey:"AIzaSyCWWnMsge75Q3_MDF9Aj9wo4C5KD6RVGfw",
+    authDomain:"q-matic-b7d77.firebaseapp.com",
+    databaseURL:"https://q-matic-b7d77-default-rtdb.firebaseio.com",
+    projectId:"q-matic-b7d77",
+    storageBucket:"q-matic-b7d77.appspot.com",
+    messagingSenderId:"908187704899",
+    appId:"1:908187704899:web:b8bcf33cda90bafe81bef6"
+  };
+
+  if(!firebase.apps.length)firebase.initializeApp(cfg);
+
+  const db=firebase.database();
+  const ROOT="main_TTO";
+
+  const gridEl=document.getElementById("grid");
+  const nowNum=document.getElementById("nowNum");
+  const nowMrn=document.getElementById("nowMrn");
+  const rangesEl=document.getElementById("ranges");
+  const msgEl=document.getElementById("confirmationMsg");
+  const giveBtn=document.getElementById("btnGiveNext");
+  const nextBtn=document.getElementById("btnNext");
+  const waitingPopup=document.getElementById("waitingPopup");
+  const waitingTitle=document.getElementById("waitingTitle");
+  const waitingMrn=document.getElementById("waitingMrn");
+  const waitingName=document.getElementById("waitingName");
+  const saveWaitingBtn=document.getElementById("saveWaiting");
+  const doneWaitingBtn=document.getElementById("doneWaiting");
+  const waitingTimerEl=document.getElementById("waitingTimer");
+
+  let waitingTicket=null;
+  let waitingTimerInterval=null;
+
+  function selectedCounter(){
+    const c=Number(sessionStorage.getItem("mainTTOCounter"));
+    if(!Number.isInteger(c)||c<1||c>4)throw new Error("Select a counter by logging in again.");
+    return c;
+  }
+
+  const ranges=[];
+  for(let s=1;s<=1000;s+=100)ranges.push([s,s+99]);
+
+  ranges.forEach(([a,b],i)=>{
+    const btn=document.createElement("button");
+    btn.textContent=`${a}–${b}`;
+    btn.onclick=()=>showRange(a,b,btn);
+    rangesEl.appendChild(btn);
+    if(i===0)btn.classList.add("active");
+  });
+
+  function clearActive(){
+    [...rangesEl.children].forEach(btn=>btn.classList.remove("active"));
+  }
+
+  let served={};
+  let printed={};
+  let noshow={};
+  let waiting={};
+  let patientInfo={};
+  let waitingTiming={};
+  let curStart=1;
+  let curEnd=100;
+  let giving=false;
+  let calling=false;
+  let recalling=false;
+
+  db.ref(`${ROOT}/served`).on("value",snap=>{
+    served=snap.val()||{};
+    refreshGridClasses();
+  });
+
+  db.ref(`${ROOT}/printed`).on("value",snap=>{
+    printed=snap.val()||{};
+    refreshGridClasses();
+  });
+
+  db.ref(`${ROOT}/noshow`).on("value",snap=>{
+    noshow=snap.val()||{};
+    refreshGridClasses();
+  });
+
+  db.ref(`${ROOT}/waiting`).on("value",snap=>{
+    waiting=snap.val()||{};
+    refreshGridClasses();
+  });
+
+  db.ref(`${ROOT}/patientInfo`).on("value",snap=>{
+    patientInfo=snap.val()||{};
+  });
+
+  db.ref(`${ROOT}/waitingTiming`).on("value",snap=>{
+    waitingTiming=snap.val()||{};
+    if(waitingTicket!==null)updateWaitingTimer();
+  });
+
+  function recallSvg(){
+    return `
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <path fill="#59b328" d="M8 26a24 24 0 0 1 39-12l4-4v14H37l5-5A17 17 0 0 0 15 31H50A24 24 0 0 1 8 26Z"/>
+        <path fill="#59b328" d="M56 38a24 24 0 0 1-39 12l-4 4V40h14l-5 5a17 17 0 0 0 15-31h7A24 24 0 0 1 56 38Z"/>
+        <path fill="#59b328" d="M19 27h8l10-9v28L27 37h-8z"/>
+        <path d="M41 25c3 3 3 11 0 14M46 21c6 6 6 16 0 22" fill="none" stroke="#59b328" stroke-width="4" stroke-linecap="round"/>
+      </svg>`;
+  }
+
+  function showRange(a,b,btn){
+    clearActive();
+    if(btn)btn.classList.add("active");
+    curStart=a;
+    curEnd=b;
+    gridEl.innerHTML="";
+
+    for(let n=a;n<=b;n++){
+      const cell=document.createElement("div");
+      cell.className="cell";
+      cell.dataset.ticket=String(n);
+
+      const marker=document.createElement("button");
+      marker.type="button";
+      marker.className="waitMarker";
+      marker.setAttribute("aria-label","متابعة التذكرة "+n);
+      marker.title="متابعة / انتظار";
+      marker.addEventListener("click",event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        openWaitingPopup(n);
+      });
+      marker.addEventListener("dblclick",event=>{
+        event.preventDefault();
+        event.stopPropagation();
+      });
+
+      const recall=document.createElement("button");
+      recall.type="button";
+      recall.className="recallBtn";
+      recall.setAttribute("aria-label","إعادة نداء التذكرة "+n);
+      recall.title="Recall";
+      recall.innerHTML=recallSvg();
+      recall.addEventListener("click",async event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        await recallTicket(n);
+      });
+      recall.addEventListener("dblclick",event=>{
+        event.preventDefault();
+        event.stopPropagation();
+      });
+
+      const numSpan=document.createElement("span");
+      numSpan.className="cellNumber";
+      numSpan.textContent=n;
+
+      cell.appendChild(marker);
+      cell.appendChild(recall);
+      cell.appendChild(numSpan);
+
+      let clickTimer=null;
+
+      cell.addEventListener("click",()=>{
+        clearTimeout(clickTimer);
+        clickTimer=setTimeout(()=>handleNumberClick(n),260);
+      });
+
+      cell.addEventListener("dblclick",async event=>{
+        event.preventDefault();
+        clearTimeout(clickTimer);
+        await markAsNoShow(n);
+      });
+
+      gridEl.appendChild(cell);
+    }
+
+    refreshGridClasses();
+  }
+
+  function showTicketRange(n){
+    if(!(n>=1&&n<=1000))return;
+    const start=Math.floor((n-1)/100)*100+1;
+    const end=Math.min(start+99,1000);
+    const rangeBtn=[...rangesEl.children][Math.floor((n-1)/100)];
+    showRange(start,end,rangeBtn);
+  }
+
+  function refreshGridClasses(){
+    [...gridEl.children].forEach(cell=>{
+      const n=Number(cell.dataset.ticket);
+      cell.classList.remove("on","no","printed","waitingState");
+
+      if(noshow[n])cell.classList.add("no");
+      else if(waiting[n]===true)cell.classList.add("waitingState");
+      else if(served[n])cell.classList.add("on");
+      else if(printed[n])cell.classList.add("printed");
+
+      const marker=cell.querySelector(".waitMarker");
+      if(marker)marker.classList.toggle("active",waiting[n]===true);
+    });
+  }
+
+  function formatDuration(ms){
+    ms=Math.max(0,Number(ms)||0);
+    const total=Math.floor(ms/1000);
+    const h=Math.floor(total/3600);
+    const m=Math.floor((total%3600)/60);
+    const sec=total%60;
+    if(h>0)return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+    return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+  }
+
+  function updateWaitingTimer(){
+    const n=Number(waitingTicket);
+    if(!(n>=1&&n<=1000)){waitingTimerEl.textContent="⏱ 00:00";return;}
+    const timing=waitingTiming[n]||{};
+    const start=Number(timing.startedAt)||0;
+    const end=Number(timing.endedAt)||0;
+
+    waitingTimerEl.classList.toggle("final",Boolean(end));
+
+    if(!start){
+      waitingTimerEl.textContent="⏱ 00:00";
+      return;
+    }
+
+    if(end){
+      waitingTimerEl.textContent=`⏱ ${formatDuration(end-start)}`;
+      return;
+    }
+
+    if(waiting[n]===true){
+      waitingTimerEl.textContent=`⏱ ${formatDuration(Date.now()-start)}`;
+      return;
+    }
+
+    waitingTimerEl.textContent="⏱ 00:00";
+  }
+
+  function startWaitingTimerDisplay(){
+    clearInterval(waitingTimerInterval);
+    updateWaitingTimer();
+    waitingTimerInterval=setInterval(updateWaitingTimer,1000);
+  }
+
+  function openWaitingPopup(n){
+    waitingTicket=n;
+    const info=patientInfo[n]||{};
+    waitingTitle.textContent=`تذكرة رقم ${n}`;
+    waitingMrn.value=info.mrn||"";
+    waitingName.value=info.name||"";
+    waitingPopup.classList.add("open");
+    waitingPopup.setAttribute("aria-hidden","false");
+    startWaitingTimerDisplay();
+  }
+
+  function closeWaitingPopup(){
+    clearInterval(waitingTimerInterval);
+    waitingTimerInterval=null;
+    waitingTicket=null;
+    waitingPopup.classList.remove("open");
+    waitingPopup.setAttribute("aria-hidden","true");
+  }
+
+  document.getElementById("closeWaiting").onclick=closeWaitingPopup;
+  waitingPopup.addEventListener("click",e=>{if(e.target===waitingPopup)closeWaitingPopup();});
+
+  saveWaitingBtn.onclick=async()=>{
+    const n=Number(waitingTicket);
+    if(!(n>=1&&n<=1000))return;
+
+    try{
+      const wasWaiting=waiting[n]===true;
+      const hadStart=Boolean(Number(waitingTiming[n]?.startedAt));
+
+      if(!printed[n]&&!served[n]&&!noshow[n])await markAsPrinted(n);
+
+      const mrn=waitingMrn.value.trim();
+      const name=waitingName.value.trim();
+
+      const tasks=[
+        db.ref(`${ROOT}/patientInfo/${n}`).set({
+          mrn:mrn||null,
+          name:name||null,
+          updatedAt:firebase.database.ServerValue.TIMESTAMP
+        })
+      ];
+
+      if(!noshow[n]){
+        tasks.push(db.ref(`${ROOT}/waiting/${n}`).set(true));
+        if(!wasWaiting || !hadStart){
+          tasks.push(db.ref(`${ROOT}/waitingTiming/${n}`).set({
+            startedAt:firebase.database.ServerValue.TIMESTAMP,
+            endedAt:null
+          }));
+        }
+      }
+
+      if(mrn)tasks.push(db.ref(`${ROOT}/mrn/${n}`).set(mrn));
+      else tasks.push(db.ref(`${ROOT}/mrn/${n}`).remove());
+
+      await Promise.all(tasks);
+
+      if(!noshow[n]){
+        waiting[n]=true;
+        const timingSnap=await db.ref(`${ROOT}/waitingTiming/${n}`).get();
+        waitingTiming[n]=timingSnap.val()||{};
+      }
+
+      patientInfo[n]={mrn,name};
+      refreshGridClasses();
+      closeWaitingPopup();
+
+      msgEl.style.color="#2563eb";
+      msgEl.textContent=`تذكرة ${n} تحت الانتظار`;
+      setTimeout(()=>{if(msgEl.textContent.includes(String(n)))msgEl.textContent="";},2500);
+
+    }catch(e){
+      alert("Firebase error: "+(e?.message||e));
+    }
+  };
+
+  doneWaitingBtn.onclick=async()=>{
+    const n=Number(waitingTicket);
+    if(!(n>=1&&n<=1000))return;
+
+    try{
+      const doneTasks=[
+        db.ref(`${ROOT}/served/${n}`).set(true),
+        db.ref(`${ROOT}/printed/${n}`).remove(),
+        db.ref(`${ROOT}/noshow/${n}`).remove(),
+        db.ref(`${ROOT}/waiting/${n}`).remove(),
+        db.ref(`${ROOT}/times/done/${n}`).set(firebase.database.ServerValue.TIMESTAMP)
+      ];
+
+      if(Number(waitingTiming[n]?.startedAt)){
+        doneTasks.push(db.ref(`${ROOT}/waitingTiming/${n}/endedAt`).set(firebase.database.ServerValue.TIMESTAMP));
+      }
+
+      await Promise.all(doneTasks);
+
+      if(Number(waitingTiming[n]?.startedAt)){
+        const timingSnap=await db.ref(`${ROOT}/waitingTiming/${n}`).get();
+        waitingTiming[n]=timingSnap.val()||{};
+      }
+
+      served[n]=true;
+      delete printed[n];
+      delete noshow[n];
+      delete waiting[n];
+      refreshGridClasses();
+      closeWaitingPopup();
+
+      msgEl.style.color="#111";
+      msgEl.textContent=`✅ تم إقفال التذكرة رقم ${n}`;
+      setTimeout(()=>{if(msgEl.textContent.includes(String(n)))msgEl.textContent="";},2500);
+
+    }catch(e){
+      alert("Firebase error: "+(e?.message||e));
+    }
+  };
+
+  async function handleNumberClick(n){
+    if(noshow[n]||served[n])return;
+    if(printed[n]){await serve(n);return;}
+    await markAsPrinted(n);
+  }
+
+  async function markAsPrinted(n){
+    printed[n]=true;
+    delete served[n];
+    delete noshow[n];
+    refreshGridClasses();
+
+    try{
+      await Promise.all([
+        db.ref(`${ROOT}/printed/${n}`).set(true),
+        db.ref(`${ROOT}/served/${n}`).remove(),
+        db.ref(`${ROOT}/noshow/${n}`).remove(),
+        db.ref(`${ROOT}/times/printed/${n}`).set(firebase.database.ServerValue.TIMESTAMP)
+      ]);
+
+      await db.ref(`${ROOT}/lastGivenTicket`).transaction(current=>{
+        const cur=Number(current)||0;
+        return n>cur?n:cur;
+      });
+
+    }catch(e){
+      delete printed[n];
+      refreshGridClasses();
+      alert("Firebase error: "+(e?.message||e));
+    }
+  }
+
+  async function markAsNoShow(n){
+    noshow[n]=true;
+    delete served[n];
+    delete printed[n];
+    refreshGridClasses();
+
+    if(parseInt(nowNum.textContent,10)===n)nowMrn.textContent="";
+
+    try{
+      await Promise.all([
+        db.ref(`${ROOT}/noshow/${n}`).set(true),
+        db.ref(`${ROOT}/served/${n}`).remove(),
+        db.ref(`${ROOT}/printed/${n}`).remove(),
+        db.ref(`${ROOT}/waiting/${n}`).remove()
+      ]);
+      delete waiting[n];
+    }catch(e){
+      alert("Firebase error: "+(e?.message||e));
+    }
+  }
+
+  async function getMrn(n){
+    const snap=await db.ref(`${ROOT}/mrn/${n}`).get();
+    return snap.exists()?snap.val():null;
+  }
+
+  async function publishAnnouncement(n,counter,mrnVal,kind="call"){
+    const eventRef=db.ref(`${ROOT}/announcementQueue`).push();
+    const eventId=eventRef.key;
+
+    const payload={
+      eventId,
+      number:n,
+      window:counter,
+      windowNum:counter,
+      mrn:mrnVal||null,
+      kind,
+      ts:firebase.database.ServerValue.TIMESTAMP
+    };
+
+    await Promise.all([
+      eventRef.set(payload),
+
+      db.ref(`${ROOT}/latest`).set({
+        eventId,
+        number:n,
+        window:counter,
+        windowNum:counter,
+        ts:firebase.database.ServerValue.TIMESTAMP,
+        mrn:mrnVal||null,
+        kind
+      }),
+
+      // Keep the old path for compatibility / lookup of the last counter for this ticket.
+      db.ref(`${ROOT}/calls/${n}`).set({
+        eventId,
+        number:n,
+        window:counter,
+        windowNum:counter,
+        mrn:mrnVal||null,
+        kind,
+        ts:firebase.database.ServerValue.TIMESTAMP
+      })
+    ]);
+
+    return eventId;
+  }
+
+  async function serve(n){
+    if(noshow[n]){
+      alert("❌ لا يمكن نداء تذكرة تم تسجيلها كـ No Show");
+      return;
+    }
+
+    let counter;
+    try{
+      counter=selectedCounter();
+    }catch(e){
+      alert(e.message);
+      return;
+    }
+
+    served[n]=true;
+    delete printed[n];
+    delete noshow[n];
+    refreshGridClasses();
+
+    let mrnVal=null;
+
+    try{
+      await Promise.all([
+        db.ref(`${ROOT}/served/${n}`).set(true),
+        db.ref(`${ROOT}/printed/${n}`).remove(),
+        db.ref(`${ROOT}/noshow/${n}`).remove(),
+        db.ref(`${ROOT}/waiting/${n}`).remove()
+      ]);
+
+      delete waiting[n];
+      mrnVal=await getMrn(n);
+
+      await Promise.all([
+        db.ref(`${ROOT}/times/served/${n}`).set(firebase.database.ServerValue.TIMESTAMP),
+        db.ref(`${ROOT}/assignment/${n}/window`).set(counter)
+      ]);
+
+      await publishAnnouncement(n,counter,mrnVal,"call");
+
+    }catch(e){
+      delete served[n];
+      refreshGridClasses();
+      alert("Firebase error: "+(e?.message||e));
+      return;
+    }
+
+    nowNum.textContent=n;
+    nowMrn.textContent=mrnVal?`MRN: ${mrnVal}`:"";
+    showTicketRange(n);
+  }
+
+  async function getLastCounterForTicket(n){
+    const [assignmentSnap,callSnap]=await Promise.all([
+      db.ref(`${ROOT}/assignment/${n}/window`).get(),
+      db.ref(`${ROOT}/calls/${n}`).get()
+    ]);
+
+    const a=Number(assignmentSnap.val());
+    if(Number.isInteger(a)&&a>=1&&a<=4)return a;
+
+    const v=callSnap.val()||{};
+    const raw=v.windowNum??v.window??v.counter??v.win??null;
+    const m=String(raw??"").match(/\d+/);
+    const c=m?Number(m[0]):NaN;
+    return Number.isInteger(c)&&c>=1&&c<=4?c:null;
+  }
+
+  async function recallTicket(n){
+    if(recalling)return;
+    recalling=true;
+
+    try{
+      const counter=await getLastCounterForTicket(n);
+
+      if(!counter){
+        alert(`التذكرة ${n} لم يتم نداؤها من قبل، لذلك لا يوجد شباك محفوظ لإعادة النداء.`);
+        return;
+      }
+
+      const mrnVal=await getMrn(n);
+
+      // Recall = sound/event only. No state/color changes.
+      const eventId=await publishAnnouncement(n,counter,mrnVal,"recall");
+
+      await db.ref(`${ROOT}/times/recall/${n}/${eventId}`).set(
+        firebase.database.ServerValue.TIMESTAMP
+      );
+
+      nowNum.textContent=n;
+      nowMrn.textContent=mrnVal?`MRN: ${mrnVal}`:"";
+
+      msgEl.style.color="#16a34a";
+      msgEl.textContent=`🔊 إعادة نداء التذكرة ${n} — الشباك ${counter}`;
+      setTimeout(()=>{
+        if(msgEl.textContent.includes(`التذكرة ${n}`))msgEl.textContent="";
+      },3000);
+
+    }catch(e){
+      alert("Firebase error: "+(e?.message||e));
+    }finally{
+      recalling=false;
+    }
+  }
+
+  async function claimNextPrintedTicket(){
+    const [printedSnap,waitingSnap]=await Promise.all([
+      db.ref(`${ROOT}/printed`).get(),
+      db.ref(`${ROOT}/waiting`).get()
+    ]);
+
+    const livePrinted=printedSnap.val()||{};
+    const liveWaiting=waitingSnap.val()||{};
+
+    const waitingTickets=Object.keys(livePrinted)
+      .filter(k=>livePrinted[k]===true)
+      .map(Number)
+      .filter(n=>Number.isInteger(n)&&n>=1&&n<=1000&&liveWaiting[n]!==true)
+      .sort((a,b)=>a-b);
+
+    for(const n of waitingTickets){
+      const servedRef=db.ref(`${ROOT}/served/${n}`);
+      const result=await servedRef.transaction(current=>{
+        if(current===true)return;
+        return true;
+      });
+
+      if(result.committed){
+        await Promise.all([
+          db.ref(`${ROOT}/noshow/${n}`).remove(),
+          db.ref(`${ROOT}/printed/${n}`).remove()
+        ]);
+        return n;
+      }
+    }
+
+    return null;
+  }
+
+  function highestUsedTicket(){
+    let max=0;
+    for(const source of [printed,served,noshow]){
+      Object.keys(source||{}).forEach(k=>{
+        if(source[k]){
+          const n=Number(k);
+          if(Number.isInteger(n)&&n>max)max=n;
+        }
+      });
+    }
+    return max;
+  }
+
+  async function giveNextTicket(){
+    if(giving)return;
+    giving=true;
+    giveBtn.disabled=true;
+
+    try{
+      const fallback=highestUsedTicket();
+      const ref=db.ref(`${ROOT}/lastGivenTicket`);
+
+      const result=await ref.transaction(current=>{
+        const cur=Number(current);
+        const last=Number.isInteger(cur)&&cur>=0?cur:fallback;
+        if(last>=1000)return;
+        return last+1;
+      });
+
+      if(!result.committed){
+        alert("لا توجد تذاكر جديدة متاحة. وصلنا إلى 1000.");
+        return;
+      }
+
+      const n=Number(result.snapshot.val());
+
+      if(!(n>=1&&n<=1000)){
+        alert("تعذر تحديد رقم التذكرة التالية.");
+        return;
+      }
+
+      await markAsPrinted(n);
+      showTicketRange(n);
+
+      msgEl.style.color="#16a34a";
+      msgEl.textContent=`✅ تم إعطاء التذكرة رقم ${n}`;
+
+      setTimeout(()=>{
+        if(msgEl.textContent.includes(String(n)))msgEl.textContent="";
+      },3500);
+
+    }catch(e){
+      alert("Firebase error: "+(e?.message||e));
+    }finally{
+      giving=false;
+      giveBtn.disabled=false;
+    }
+  }
+
+  async function callNextTicket(){
+    if(calling)return;
+    calling=true;
+    nextBtn.disabled=true;
+
+    try{
+      selectedCounter();
+      const n=await claimNextPrintedTicket();
+
+      if(n!==null){
+        await serve(n);
+      }else{
+        msgEl.style.color="#f59e0b";
+        msgEl.textContent="⚠️ لا توجد تذكرة خضراء بانتظار النداء";
+        setTimeout(()=>{msgEl.textContent="";},4000);
+      }
+    }catch(e){
+      alert(e.message||e);
+    }finally{
+      calling=false;
+      nextBtn.disabled=false;
+    }
+  }
+
+  giveBtn.onclick=giveNextTicket;
+  nextBtn.onclick=callNextTicket;
+
+  document.addEventListener("keydown",event=>{
+    if(document.getElementById("accessOverlay"))return;
+    if(event.repeat)return;
+
+    const tag=(document.activeElement?.tagName||"").toUpperCase();
+    if(tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA")return;
+
+    if(event.key==="Enter"){
+      event.preventDefault();
+      event.stopPropagation();
+      giveNextTicket();
+      return;
+    }
+
+    if(event.key==="ArrowRight"){
+      event.preventDefault();
+      event.stopPropagation();
+      callNextTicket();
+    }
+  },true);
+
+  document.getElementById("btnNo").onclick=async()=>{
+    const n=parseInt(nowNum.textContent,10);
+    if(n)await markAsNoShow(n);
+  };
+
+  document.getElementById("btnReset").onclick=async()=>{
+    if(!confirm("سيتم مسح جميع البيانات (مطبوع/مخدّم/لم يحضر) وإعادة البدء. متابعة؟"))return;
+
+    try{
+      await Promise.all([
+        db.ref(`${ROOT}/served`).remove(),
+        db.ref(`${ROOT}/noshow`).remove(),
+        db.ref(`${ROOT}/printed`).remove(),
+        db.ref(`${ROOT}/mrn`).remove(),
+        db.ref(`${ROOT}/latest`).remove(),
+        db.ref(`${ROOT}/latestPrinted`).remove(),
+        db.ref(`${ROOT}/next`).set(null),
+        db.ref(`${ROOT}/lastGivenTicket`).remove(),
+        db.ref(`${ROOT}/assignment`).remove(),
+        db.ref(`${ROOT}/calls`).remove(),
+        db.ref(`${ROOT}/announcementQueue`).remove(),
+        db.ref(`${ROOT}/waiting`).remove(),
+        db.ref(`${ROOT}/patientInfo`).remove(),
+        db.ref(`${ROOT}/waitingTiming`).remove(),
+        db.ref(`${ROOT}/times/recall`).remove()
+      ]);
+
+      const flagRef=db.ref(`${ROOT}/resetFlag`);
+      await flagRef.set(Date.now());
+      setTimeout(()=>flagRef.set(null),1500);
+
+      served={};
+      noshow={};
+      printed={};
+      waiting={};
+      patientInfo={};
+      waitingTiming={};
+      nowNum.textContent="-";
+      nowMrn.textContent="";
+      refreshGridClasses();
+
+      const firstBtn=document.querySelector(".ranges button");
+      if(firstBtn)showRange(1,100,firstBtn);
+
+    }catch(e){
+      alert("Firebase error: "+(e?.message||e));
+    }
+  };
+
+  db.ref(`${ROOT}/latest`).on("value",snap=>{
+    const v=snap.val();
+    if(!v)return;
+    nowNum.textContent=v.number||"-";
+    nowMrn.textContent=v.mrn?`MRN: ${v.mrn}`:"";
+  });
+
+  showRange(1,100,rangesEl.firstElementChild);
+})();
+</script>
+
+<!-- Aggressive Screen Wake Lock -->
+<script>
+(function(){
+  let wakeLock = null;
+  let requesting = false;
+  let retryTimer = null;
+
+  async function requestWakeLock(){
+    if(requesting) return;
+    if(!("wakeLock" in navigator)) return;
+    if(document.visibilityState !== "visible") return;
+
+    if(wakeLock && wakeLock.released === false) return;
+
+    requesting = true;
+    try{
+      wakeLock = await navigator.wakeLock.request("screen");
+
+      wakeLock.addEventListener("release", ()=>{
+        wakeLock = null;
+        clearTimeout(retryTimer);
+        retryTimer = setTimeout(requestWakeLock, 300);
+      }, {once:true});
+
+    }catch(e){
+      wakeLock = null;
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(requestWakeLock, 1500);
+    }finally{
+      requesting = false;
+    }
+  }
+
+  // Try immediately, then aggressively reacquire whenever the page becomes usable again.
+  requestWakeLock();
+
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "visible"){
+      requestWakeLock();
+    }
+  });
+
+  window.addEventListener("focus", requestWakeLock);
+  window.addEventListener("pageshow", requestWakeLock);
+  window.addEventListener("online", requestWakeLock);
+
+  // Any real interaction is another chance to acquire the lock.
+  ["pointerdown","touchstart","keydown","click"].forEach(type=>{
+    window.addEventListener(type, requestWakeLock, {passive:true});
+  });
+
+  // Safety check: if browser/OS releases it unexpectedly, request it again.
+  setInterval(requestWakeLock, 5000);
+
+  // Expose for the rest of the page if needed.
+  window.__mainTTOWakeLock = {
+    request: requestWakeLock,
+    active: ()=>Boolean(wakeLock && wakeLock.released === false)
+  };
+})();
+</script>
+
+</body>
+</html>
